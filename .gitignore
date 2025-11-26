@@ -1,0 +1,80 @@
+##########################
+# Java / Maven / Spring
+##########################
+
+# Maven output
+target/
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/
+
+# Logs
+*.log
+
+# Compiled class files
+*.class
+
+# Package files
+*.jar
+*.war
+*.ear
+
+##########################
+# Node / React / JS Build
+##########################
+
+node_modules/
+dist/
+build/
+
+# NPM / Yarn debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+##########################
+# OS Specific
+##########################
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+##########################
+# IDE Configs
+##########################
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+out/
+
+# VSCode
+.vscode/
+
+##########################
+# Docker
+##########################
+
+# Override compose files
+docker-compose.override.yml
+
+##########################
+# Secrets
+##########################
+
+.env
+*.keystore
+*.jks
+*.pem
+*.crt
+*.key
+
+##########################
+# Python cache (just in case)
+##########################
+
+__pycache__/
+*.pyc
