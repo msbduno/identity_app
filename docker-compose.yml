@@ -29,7 +29,7 @@ services:
     container_name: identity_redis
     hostname: redis
     ports:
-      - "6379:6379"
+      - "6380:6379"
 
   # Service pour l'application Spring Boot
   backend:
@@ -49,8 +49,8 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       # Mot de passe pour la base
       SPRING_DATASOURCE_PASSWORD: postgres
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
 
     ports:
       # Expose le port 8080 du conteneur sur le port 8080 de la machine hôte
