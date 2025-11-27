@@ -24,29 +24,51 @@ services:
       - postgres_data:/var/lib/postgresql/data
     # Redémarre le conteneur sauf si on l'arrête explicitement
 
+  redis:
+    image: redis:7
+    container_name: identity_redis
+    hostname: redis
+    ports:
+      - "6379:6379"
+
   # Service pour l'application Spring Boot
   backend:
     # Construit l'image à partir du Dockerfile situé dans ./backend
     build: ./backend
     container_name: identity_backend
     depends_on:
-      # Démarre ce service après le service postgres
+      # Démarre ce service après le service postgres & redis
       - postgres
+      - redis
 
     # Variables d'environnement pour configurer la connexion à la base
     environment:
       # URL JDBC pour accéder à PostgreSQL
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/identitydb
       # Nom d'utilisateur pour la base
-      SPRING_DATASOURCE_USERNAME: identity
+      SPRING_DATASOURCE_USERNAME: postgres
       # Mot de passe pour la base
-      SPRING_DATASOURCE_PASSWORD: identitypass
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
 
     ports:
       # Expose le port 8080 du conteneur sur le port 8080 de la machine hôte
       - "8080:8080"
     # Redémarre le conteneur sauf si on l'arrête explicitement
     restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: identity_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    depends_on:
+      - backend
 
 volumes:
   # Déclaration du volume pour persister les données PostgreSQL
