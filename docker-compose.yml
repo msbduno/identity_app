@@ -1,0 +1,53 @@
+# Version du format de fichier docker-compose
+version: '3.8'
+
+services:
+  # Service pour la base de données PostgreSQL
+  postgres:
+    # Utilise l'image officielle PostgreSQL version 15
+    image: postgres:15
+    # Nom du conteneur
+    container_name: identity_postgres
+    # Variables d'environnement pour configurer PostgreSQL
+    environment:
+      # Nom d'utilisateur de la base
+      POSTGRES_USER: postgres
+      # Mot de passe de l'utilisateur
+      POSTGRES_PASSWORD: postgres
+      # Nom de la base de données
+      POSTGRES_DB: identitydb
+    ports:
+      # Expose le port 5433 du conteneur sur le port 5432 de la machine hôte
+      - "5433:5432"
+    volumes:
+      # Persiste les données dans un volume nommé
+      - postgres_data:/var/lib/postgresql/data
+    # Redémarre le conteneur sauf si on l'arrête explicitement
+
+  # Service pour l'application Spring Boot
+  backend:
+    # Construit l'image à partir du Dockerfile situé dans ./backend
+    build: ./backend
+    container_name: identity_backend
+    depends_on:
+      # Démarre ce service après le service postgres
+      - postgres
+
+    # Variables d'environnement pour configurer la connexion à la base
+    environment:
+      # URL JDBC pour accéder à PostgreSQL
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/identitydb
+      # Nom d'utilisateur pour la base
+      SPRING_DATASOURCE_USERNAME: identity
+      # Mot de passe pour la base
+      SPRING_DATASOURCE_PASSWORD: identitypass
+
+    ports:
+      # Expose le port 8080 du conteneur sur le port 8080 de la machine hôte
+      - "8080:8080"
+    # Redémarre le conteneur sauf si on l'arrête explicitement
+    restart: unless-stopped
+
+volumes:
+  # Déclaration du volume pour persister les données PostgreSQL
+  postgres_data:
