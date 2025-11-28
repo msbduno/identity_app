@@ -1,6 +1,23 @@
-# Version du format de fichier docker-compose
-version: '3.8'
+# Ce fichier docker-compose permet de lancer et d'orchestrer tous les services nécessaires à l'application:
 
+# - Une base de données PostgreSQL pour stocker les données
+# - Un serveur Redis pour la gestion du cache
+# - Un backend Spring Boot pour la logique métier
+# - Un frontend React/Next.js pour l'interface utilisateur
+
+# Les services
+# - Chaque service est isolé dans un conteneur et peut communiquer avec les autres.
+
+# Les volumes
+# - Ils assurent la persistance des données importantes (base de données, clés cryptographiques).
+# - Un volume est utilisé par les conteneurs pour conserver les données même lorsque les conteneurs sont arrêtés ou supprimés.
+
+# Les commandes
+# -`docker-compose up` pour démarrer l'ensemble
+# -`docker-compose down` pour arrêter
+
+
+version: '3.8'
 services:
   # Service pour la base de données PostgreSQL
   postgres:
@@ -22,15 +39,13 @@ services:
     volumes:
       # Persiste les données dans un volume nommé
       - postgres_data:/var/lib/postgresql/data
-    # Redémarre le conteneur sauf si on l'arrête explicitement
-
+  # Service pour le serveur Redis
   redis:
     image: redis:7
     container_name: identity_redis
     hostname: redis
     ports:
       - "6380:6379"
-
   # Service pour l'application Spring Boot
   backend:
     # Construit l'image à partir du Dockerfile situé dans ./backend
@@ -40,24 +55,23 @@ services:
       # Démarre ce service après le service postgres & redis
       - postgres
       - redis
-
     # Variables d'environnement pour configurer la connexion à la base
     environment:
-      # URL JDBC pour accéder à PostgreSQL
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/identitydb
-      # Nom d'utilisateur pour la base
       SPRING_DATASOURCE_USERNAME: postgres
-      # Mot de passe pour la base
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-
+      JWT_SECRET: ${JWT_SECRET}
+    # Expose le port 8080 du conteneur sur le port 8080 de la machine hôte
     ports:
-      # Expose le port 8080 du conteneur sur le port 8080 de la machine hôte
       - "8080:8080"
+    #Permet de stocker les clés cryptographiques de l'application
+    volumes:
+      - crypto_keys:/app/keys
     # Redémarre le conteneur sauf si on l'arrête explicitement
     restart: unless-stopped
-
+  # fronted est un service pour l'application Next.js
   frontend:
     build:
       context: ./frontend
@@ -69,7 +83,9 @@ services:
       NEXT_PUBLIC_API_URL: http://localhost:8080
     depends_on:
       - backend
-
 volumes:
   # Déclaration du volume pour persister les données PostgreSQL
   postgres_data:
+  # Déclaration du volume pour stocker les clés cryptographiques
+  crypto_keys:
+    driver: local
