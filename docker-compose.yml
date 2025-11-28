@@ -76,8 +76,17 @@ services:
       - "3000:3000"
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8080
+      # Variables pour activer le hot reload dans Docker
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
     depends_on:
       - backend
+    volumes:
+          - ./frontend:/app
+          - /app/node_modules
+          - /app/.next
+    stdin_open: true    # ← Pour le hot reload
+    tty: true
 volumes:
   # Déclaration du volume pour persister les données PostgreSQL
   postgres_data:
