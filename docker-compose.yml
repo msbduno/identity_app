@@ -21,23 +21,18 @@ version: '3.8'
 services:
   # Service pour la base de données PostgreSQL
   postgres:
-    # Utilise l'image officielle PostgreSQL version 15
     image: postgres:15
-    # Nom du conteneur
     container_name: identity_postgres
     # Variables d'environnement pour configurer PostgreSQL
     environment:
-      # Nom d'utilisateur de la base
       POSTGRES_USER: postgres
-      # Mot de passe de l'utilisateur
       POSTGRES_PASSWORD: postgres
-      # Nom de la base de données
       POSTGRES_DB: identitydb
+    # Expose le port 5433 du conteneur sur le port 5432 de la machine hôte
     ports:
-      # Expose le port 5433 du conteneur sur le port 5432 de la machine hôte
       - "5433:5432"
+    # Persiste les données dans un volume nommé
     volumes:
-      # Persiste les données dans un volume nommé
       - postgres_data:/var/lib/postgresql/data
   # Service pour le serveur Redis
   redis:
@@ -51,8 +46,8 @@ services:
     # Construit l'image à partir du Dockerfile situé dans ./backend
     build: ./backend
     container_name: identity_backend
+    # Démarre ce service après le service postgres & redis
     depends_on:
-      # Démarre ce service après le service postgres & redis
       - postgres
       - redis
     # Variables d'environnement pour configurer la connexion à la base
