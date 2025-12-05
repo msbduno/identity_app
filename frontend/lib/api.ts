@@ -41,7 +41,7 @@ export async function login(email: string, password: string): Promise<LoginRespo
 }
 
 export async function getCurrentUser(token: string): Promise<UserResponse> {
-    const res = await fetch(`${API_URL}/me`, {
+    const res = await fetch(`${API_URL}/me`, { // ← Devient /auth/me
         headers: {
             "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json"

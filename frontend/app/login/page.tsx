@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { login } from "@/lib/api";
+import { login, getCurrentUser } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -18,11 +18,24 @@ export default function LoginPage() {
         setMsg("");
 
         try {
+            // 1. Login et récupération du token
             const data = await login(email, password);
             localStorage.setItem("token", data.token);
             localStorage.setItem("tokenExpiry", data.expiresAt);
-            setMsg(" Connexion réussie !");
-            setTimeout(() => router.push("/dashboard"), 1000);
+
+            // 2. Récupérer les infos utilisateur (incluant le rôle)
+            const userInfo = await getCurrentUser(data.token);
+
+            setMsg("✓ Connexion réussie !");
+
+            // 3. Redirection basée sur le rôle
+            setTimeout(() => {
+                if (userInfo.role === 'ADMIN') {
+                    router.push("/admin");
+                } else {
+                    router.push("/user");
+                }
+            }, 1000);
         } catch (err: any) {
             setMsg(err.message || "Email ou mot de passe incorrect");
         } finally {
@@ -31,50 +44,92 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800 p-4">
-            <form
-                onSubmit={handleSubmit}
-                className="flex w-full max-w-md flex-col gap-4 rounded-2xl bg-white p-8 shadow-2xl dark:bg-gray-900 border dark:border-gray-700"
-            >
-                <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-2">
-                    Connexion
-                </h1>
-
-                <input
-                    type="email"
-                    placeholder="Email"
-                    className="rounded-lg border border-gray-300 dark:border-gray-600 p-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={loading}
-                />
-
-                <input
-                    type="password"
-                    placeholder="Mot de passe"
-                    className="rounded-lg border border-gray-300 dark:border-gray-600 p-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={loading}
-                />
-
-                <button
-                    type="submit"
-                    className="rounded-lg bg-green-600 p-3 text-white font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={loading}
-                >
-                    {loading ? "Connexion..." : "Se connecter"}
-                </button>
-
-                <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-                    Pas encore de compte ?{" "}
-                    <Link href="/register" className="text-green-600 dark:text-green-400 hover:underline font-semibold">
-                        S'inscrire
+        <div className="min-h-screen bg-neutral-950">
+            {/* Header */}
+            <header className="border-b border-neutral-800">
+                <div className="max-w-6xl mx-auto px-6 py-6">
+                    <Link href="/" className="flex items-center gap-2 w-fit">
+                        <div className="w-8 h-8 bg-white rounded-lg"></div>
+                        <span className="text-neutral-400 text-lg font-semibold">AuthSecure</span>
                     </Link>
-                </p>
-            </form>
+                </div>
+            </header>
+
+            {/* Form Section */}
+            <div className="max-w-md mx-auto px-6 pt-32 pb-24">
+                <div className="space-y-8">
+                    {/* Title */}
+                    <div className="space-y-2">
+                        <h1 className="text-4xl font-bold text-white">Connexion</h1>
+                        <p className="text-neutral-400">Accédez à votre espace sécurisé</p>
+                    </div>
+
+                    {/* Form */}
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="space-y-4">
+                            <div>
+                                <label htmlFor="email" className="block text-sm font-medium text-neutral-300 mb-2">
+                                    Email
+                                </label>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    placeholder="votre@email.com"
+                                    className="w-full rounded-lg border border-neutral-800 bg-neutral-900 p-3 text-white placeholder:text-neutral-600 focus:outline-none focus:border-neutral-600 transition-colors"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                    disabled={loading}
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="password" className="block text-sm font-medium text-neutral-300 mb-2">
+                                    Mot de passe
+                                </label>
+                                <input
+                                    id="password"
+                                    type="password"
+                                    placeholder="••••••••"
+                                    className="w-full rounded-lg border border-neutral-800 bg-neutral-900 p-3 text-white placeholder:text-neutral-600 focus:outline-none focus:border-neutral-600 transition-colors"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    disabled={loading}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Message */}
+                        {msg && (
+                            <div className={`text-sm p-3 rounded-lg ${
+                                msg.includes("✓")
+                                    ? "bg-green-950 text-green-400 border border-green-900"
+                                    : "bg-red-950 text-red-400 border border-red-900"
+                            }`}>
+                                {msg}
+                            </div>
+                        )}
+
+                        {/* Submit Button */}
+                        <button
+                            type="submit"
+                            className="w-full rounded-lg bg-white text-black p-3 font-medium hover:bg-neutral-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={loading}
+                        >
+                            {loading ? "Connexion..." : "Se connecter"}
+                        </button>
+
+                        {/* Register Link */}
+                        <p className="text-center text-sm text-neutral-400">
+                            Pas encore de compte ?{" "}
+                            <Link href="/register" className="text-white font-medium hover:underline">
+                                S'inscrire
+                            </Link>
+                        </p>
+                    </form>
+                </div>
+            </div>
         </div>
     );
 }
