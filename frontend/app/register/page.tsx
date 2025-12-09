@@ -18,8 +18,12 @@ export default function RegisterPage() {
         setMsg("");
 
         try {
+            // Afficher que la génération RSA est en cours
+            setMsg("Génération des clés de sécurité...");
+            
             await register(email, password);
-            setMsg("✓ Inscription réussie ! Redirection...");
+            
+            setMsg("Inscription réussie ! Clés sécurisées générées. Redirection...");
             setTimeout(() => router.push("/login"), 1500);
         } catch (err: any) {
             setMsg(err.message || "Erreur d'inscription");
@@ -91,7 +95,7 @@ export default function RegisterPage() {
                         {/* Message */}
                         {msg && (
                             <div className={`text-sm p-3 rounded-lg ${
-                                msg.includes("✓")
+                                msg.includes("réussie")
                                     ? "bg-green-950 text-green-400 border border-green-900"
                                     : "bg-red-950 text-red-400 border border-red-900"
                             }`}>

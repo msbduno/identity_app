@@ -1,5 +1,10 @@
 package com.indentity.identity_app.filter;
 
+import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.indentity.identity_app.entity.Role;
+import com.indentity.identity_app.entity.User;
+import com.indentity.identity_app.repository.UserRepository;
+import com.indentity.identity_app.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,17 +15,16 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import com.indentity.identity_app.entity.User;
-import com.indentity.identity_app.service.AuthService;
+
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class TokenAuthenticationFilter extends OncePerRequestFilter {
 
-    private final AuthService authService;
+    private final JwtService jwtService;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -32,18 +36,28 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
             try {
-                User user = authService.getUserFromToken(token);
+                // Valider et extraire les informations du JWT
+                String email = jwtService.getEmailFromToken(token);
+                Role role = jwtService.getRoleFromToken(token);
+
+                // Récupérer l'utilisateur depuis la base de données
+                User user = userRepository.findByEmail(email)
+                        .orElseThrow(() -> new RuntimeException("User not found"));
 
                 // Définir l'utilisateur dans le SecurityContext
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 user,
                                 null,
-                                List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
+                                List.of(new SimpleGrantedAuthority("ROLE_" + role.name()))
                         );
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
+            } catch (JWTVerificationException e) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Invalid or expired token");
+                return;
             } catch (RuntimeException e) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.getWriter().write(e.getMessage());

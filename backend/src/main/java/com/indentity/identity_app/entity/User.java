@@ -23,4 +23,9 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    // Clé publique RSA au format Base64 (SPKI)
+    // Utilisée pour vérifier les signatures côté serveur
+    @Column(columnDefinition = "TEXT")
+    private String publicKey;
 }

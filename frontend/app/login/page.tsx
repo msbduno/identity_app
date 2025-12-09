@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { login, getCurrentUser } from "@/lib/api";
+import { loginWithMFA, getCurrentUser } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -18,17 +18,19 @@ export default function LoginPage() {
         setMsg("");
 
         try {
-            // 1. Login et récupération du token
-            const data = await login(email, password);
-            localStorage.setItem("token", data.token);
-            localStorage.setItem("tokenExpiry", data.expiresAt);
+            // 1. Afficher le processus d'authentification MFA
+            setMsg("Authentification multi-facteurs en cours...");
+            
+            // 2. Authentification MFA (password + RSA signature) → JWT
+            const data = await loginWithMFA(email, password);
+            localStorage.setItem("token", data.token); // JWT contient déjà l'expiration
 
-            // 2. Récupérer les infos utilisateur (incluant le rôle)
+            // 3. Récupérer les infos utilisateur (incluant le rôle)
             const userInfo = await getCurrentUser(data.token);
 
-            setMsg("✓ Connexion réussie !");
+            setMsg("Authentification sécurisée réussie !");
 
-            // 3. Redirection basée sur le rôle
+            // 4. Redirection basée sur le rôle
             setTimeout(() => {
                 if (userInfo.role === 'ADMIN') {
                     router.push("/admin");
@@ -37,7 +39,7 @@ export default function LoginPage() {
                 }
             }, 1000);
         } catch (err: any) {
-            setMsg(err.message || "Email ou mot de passe incorrect");
+            setMsg(err.message || "Authentification échouée");
         } finally {
             setLoading(false);
         }
@@ -61,7 +63,7 @@ export default function LoginPage() {
                     {/* Title */}
                     <div className="space-y-2">
                         <h1 className="text-4xl font-bold text-white">Connexion</h1>
-                        <p className="text-neutral-400">Accédez à votre espace sécurisé</p>
+                        <p className="text-neutral-400">Authentification multi-facteurs (MFA)</p>
                     </div>
 
                     {/* Form */}
@@ -103,7 +105,7 @@ export default function LoginPage() {
                         {/* Message */}
                         {msg && (
                             <div className={`text-sm p-3 rounded-lg ${
-                                msg.includes("✓")
+                                msg.includes("réussie")
                                     ? "bg-green-950 text-green-400 border border-green-900"
                                     : "bg-red-950 text-red-400 border border-red-900"
                             }`}>

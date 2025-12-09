@@ -1,11 +1,10 @@
 package com.indentity.identity_app.controller;
 
-import com.indentity.identity_app.entity.LoginResponse;
-import com.indentity.identity_app.entity.SessionToken;
+import com.indentity.identity_app.dto.Request.*;
+import com.indentity.identity_app.dto.Response.*;
 import com.indentity.identity_app.entity.User;
 import com.indentity.identity_app.service.AuthService;
-import lombok.AllArgsConstructor;
-import lombok.Data;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -17,53 +16,55 @@ public class AuthController {
 
     private final AuthService authService;
 
+    /**
+     * Enregistrement d'un nouvel utilisateur avec clé publique RSA
+     */
     @PostMapping("/register")
     public String register(@RequestBody RegisterRequest req) {
-        authService.register(req.email, req.password);
+        authService.register(req.email, req.password, req.publicKey);
         return "User registered";
     }
 
+    /**
+     * STEP 1 du MFA : Validation du mot de passe
+     * Retourne un token temporaire valide 5 minutes
+     */
     @PostMapping("/login")
-    public LoginResponse login(@RequestBody LoginRequest req) {
-       SessionToken session = authService.login(req.email, req.password);
-         return new LoginResponse(session.getToken(), session.getExpiresAt());
+    public TempTokenResponse login(@RequestBody LoginFirstRequest req) {
+        String tempToken = authService.loginStep1(req.email, req.password);
+        return new TempTokenResponse(tempToken);
     }
 
+    /**
+     * STEP 2 du MFA : Demande un challenge (avec temporaryToken)
+     * Le client doit ensuite signer ce challenge avec sa clé privée
+     */
+    @PostMapping("/challenge")
+    public ChallengeResponse requestChallenge(@RequestBody ChallengeTokenRequest req) {
+        String challenge = authService.requestChallengeWithToken(req.temporaryToken);
+        return new ChallengeResponse(challenge);
+    }
 
+    /**
+     * STEP 3 du MFA : Authentification par signature RSA
+     * Le client envoie le temporaryToken + challenge + signature
+     */
+    @PostMapping("/authenticate")
+    public JwtResponse authenticateWithSignature(@RequestBody AuthenticateRequest req) {
+        String jwt = authService.authenticateWithSignature(
+                req.temporaryToken,
+                req.challenge,
+                req.signature
+        );
+        return new JwtResponse(jwt);
+    }
+
+    /**
+     * Récupère les informations de l'utilisateur connecté
+     */
     @GetMapping("/me")
     public UserInfoResponse me(@AuthenticationPrincipal User user) {
         return new UserInfoResponse(user.getEmail(), user.getRole().name());
     }
 
-
-    @PostMapping("/logout")
-    public String logout(@AuthenticationPrincipal User user, @RequestHeader("Authorization") String authHeader) {
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            authService.logout(user, token);
-            return "Logged out successfully";
-        } else {
-            return "No valid token provided";
-        }
-    }
-
-
-    @Data
-    static class RegisterRequest {
-        public String email;
-        public String password;
-    }
-
-    @Data
-    static class LoginRequest {
-        public String email;
-        public String password;
-    }
-
-    @Data
-    @AllArgsConstructor
-    static class UserInfoResponse {
-        private String email;
-        private String role;
-    }
 }
